@@ -289,6 +289,12 @@ input[type=date]{color-scheme:dark}
 .sec-h span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .progress{height:4px;border-radius:4px;background:rgba(140,175,215,.18);overflow:hidden;margin-bottom:8px}
 .progress i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--green));transition:width .45s var(--ease)}
+.rlist{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.rlist li{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:9px;font-size:13.5px}
+.rlist li:nth-child(odd){background:rgba(140,175,215,.06)}
+.rlist li::before{content:'';flex:none;width:8px;height:8px;margin-top:6px;border-radius:2px;transform:rotate(45deg);background:var(--lv)}
+.rlist.ctl li::before{border-radius:50%;transform:none;background:var(--green)}
+.rlist-empty{font-size:12.5px;color:var(--muted)}
 .ctrl{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .2s}
 .ctrl:hover{background:rgba(140,175,215,.08)}
 .ctrl input{position:absolute;opacity:0;width:20px;height:20px;margin:0;cursor:pointer}
@@ -702,7 +708,8 @@ fieldset{border:0;margin:0;padding:0}
         <div class="field"><label for="fzPj">Penanggung jawab</label><input type="text" id="fzPj" maxlength="60" autocomplete="off"></div>
       </div>
       <div class="field"><label for="fzDesc">Deskripsi area (opsional)</label><textarea id="fzDesc" maxlength="400"></textarea></div>
-      <div class="field"><label for="fzKontrol">Checklist pengendalian (satu baris per butir)</label><textarea id="fzKontrol" rows="4"></textarea></div>
+      <div class="field"><label for="fzIden">Identifikasi bahaya &amp; risiko (satu baris per butir)</label><textarea id="fzIden" rows="4"></textarea></div>
+      <div class="field"><label for="fzKontrol">Pengendalian risiko (satu baris per butir)</label><textarea id="fzKontrol" rows="4"></textarea></div>
     </div>
     <div class="dlg-foot">
       <button class="btn" type="button" data-close>Batal</button>
@@ -4822,6 +4829,14 @@ document.addEventListener('submit', e => {
 /* ---------- Tata letak zona: tersimpan di browser ini (localStorage), bisa diekspor/diimpor sebagai JSON ---------- */
 const LAYOUT_KEY = 'safebuild8d.tataletak.v1';
 const OBJEK = { '': 'Tanpa objek', perancah: 'Perancah', material: 'Penyimpanan material', panel: 'Panel listrik' };
+const IDEN_BAWAAN = {                                       // identifikasi bahaya & risiko bawaan (dipakai bila data zona belum memilikinya)
+  perancah: ['Pekerja jatuh dari lantai kerja perancah: cedera berat atau fatal', 'Panel kaca atau alat jatuh menimpa pekerja di bawah',
+    'Perancah roboh akibat angkur lepas atau beban berlebih', 'Tangan terjepit atau tersayat saat mengangkat panel kaca', 'Angin kencang di tepi atap mengganggu keseimbangan pekerja'],
+  listrik: ['Sengatan listrik dari kabel 380 V yang isolasinya terkelupas', 'Hubung singkat memicu kebakaran panel',
+    'Arus bocor akibat area panel basah atau tergenang', 'Panel dioperasikan orang yang tidak berwenang'],
+  material: ['Pekerja tertabrak forklift di jalur pejalan kaki', 'Tumpukan material runtuh menimpa pekerja',
+    'Pipa atau besi menggelinding dan menjepit kaki', 'Cedera punggung saat mengangkat material secara manual', 'Tersandung material yang berserakan']
+};
 const KONTROL_BAWAAN = ['Area dibarikade dan diberi rambu', 'APD sesuai pekerjaan dipakai', 'JSA sudah dibriefing ke pekerja'];
 const DEFAULT_ZONES = JSON.parse(JSON.stringify(ZONES));
 const r1 = n => Math.round(n * 10) / 10;
@@ -4840,6 +4855,7 @@ function normalizeZone(z) {                                 // lengkapi isian ag
   if (o.objek === 'perancah') { o.len = Number.isFinite(o.len) ? o.len : 30; o.tinggi = Number.isFinite(o.tinggi) ? o.tinggi : 8; }
   o.pj = Object.assign({ nama: 'Belum ditetapkan', peran: 'Penanggung jawab zona' }, o.pj);
   o.izin = Object.assign({ kode: null, jenis: 'Izin kerja umum', lokasi: '-', status: 'Tidak perlu izin khusus', ket: 'Tercakup JSA harian', lv: 'terkendali' }, o.izin);
+  o.identifikasi = Array.isArray(o.identifikasi) ? o.identifikasi.map(t => String(t || '').trim()).filter(Boolean) : (IDEN_BAWAAN[o.id] || []).slice();
   o.kontrol = Array.isArray(o.kontrol) && o.kontrol.length ? o.kontrol.map(k => ({ t: String(k.t || ''), ok: !!k.ok })) : KONTROL_BAWAAN.map(t => ({ t, ok: false }));
   return o;
 }
@@ -5539,12 +5555,6 @@ function closePanel() {
   setNav('command');
 }
 
-function renderProgress(z) {
-  const done = z.kontrol.filter(k => k.ok).length, tot = z.kontrol.length;
-  const c = $('#ctrlCount'), b = $('#ctrlBar');
-  if (c) c.textContent = `${done} dari ${tot} terverifikasi`;
-  if (b) b.style.width = (done / tot * 100) + '%';
-}
 
 function renderDetail(z) {
   const L = LEVEL[z.level];
@@ -5558,39 +5568,19 @@ function renderDetail(z) {
     <p class="desc">${esc(z.deskripsi)}</p>
     <dl class="facts">
       <div><dt>Penanggung jawab</dt><dd>${esc(z.pj.nama)}<small>${esc(z.pj.peran)}</small></dd></div>
-      <div><dt>Izin kerja</dt><dd>${PERMITS.filter(p => p.zona === z.id).map(p => `<em class="chip lv-${IZIN_ST[p.status]}">${esc(p.status)}</em>
-        <small><span class="mono">${esc(p.kode)}</span> · ${esc(p.jenis)}${p.ket ? ' · ' + esc(p.ket) : ''}</small>`).join('') || '<em class="chip lv-terkendali">Tidak ada izin tertaut</em><small>Tambahkan lewat bagian Izin kerja di bawah.</small>'}</dd></div>
-      <div><dt>Inspeksi terakhir</dt><dd id="lastInsp">${esc(z.inspeksi)}</dd></div>
     </dl>
+    <section aria-labelledby="idenH">
+      <div class="sec-h"><h3 id="idenH">Identifikasi bahaya &amp; risiko</h3><span>${z.identifikasi.length} butir</span></div>
+      ${z.identifikasi.length ? `<ul class="rlist haz">${z.identifikasi.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`
+        : `<p class="rlist-empty">Belum ada identifikasi bahaya untuk zona ini.${isAdmin() ? ' Isi lewat "Atur zona", lalu ubah data zona.' : ''}</p>`}
+    </section>
     <section aria-labelledby="ctrlH">
-      <div class="sec-h"><h3 id="ctrlH">Checklist pengendalian</h3><span id="ctrlCount" aria-live="polite"></span></div>
-      <div class="progress" aria-hidden="true"><i id="ctrlBar"></i></div>
-      <div id="ctrlList">${z.kontrol.map((k, i) => `
-        <label class="ctrl"><input type="checkbox" data-i="${i}" ${k.ok ? 'checked' : ''} ${isAdmin() ? '' : 'disabled'}>
-          <span class="box" aria-hidden="true"><svg viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 5"/></svg></span>
-          <span class="t">${esc(k.t)}</span><em>${k.ok ? 'OK' : 'Terbuka'}</em></label>`).join('')}</div>
+      <div class="sec-h"><h3 id="ctrlH">Pengendalian risiko</h3><span>${z.kontrol.length} butir</span></div>
+      <ul class="rlist ctl">${z.kontrol.map(k => `<li>${esc(k.t)}</li>`).join('')}</ul>
     </section>`;
-  $('#panelActions').innerHTML = `
-    <button class="btn primary block" type="button" id="btnDone">✓ Tandai inspeksi selesai</button>
-    <button class="btn danger block" type="button" id="btnHazard"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>Laporkan bahaya</button>`;
-  $('#panelActions').hidden = false;
-  renderProgress(z);
+  $('#panelActions').innerHTML = ''; $('#panelActions').hidden = true;
 
   $('#panelClose').addEventListener('click', closePanel);
-  $$('#ctrlList input').forEach(inp => inp.addEventListener('change', () => {
-    const k = z.kontrol[+inp.dataset.i]; k.ok = inp.checked;
-    inp.closest('.ctrl').querySelector('em').textContent = k.ok ? 'OK' : 'Terbuka';
-    renderProgress(z); saveLayout();
-  }));
-  $('#btnDone').addEventListener('click', () => {
-    const open = z.kontrol.filter(k => !k.ok).length, jam = jamSekarang();
-    state.inspected.add(z.id);
-    z.inspeksi = `Hari ini ${jam} · ${open ? open + ' pengendalian terbuka' : 'semua pengendalian OK'}`;
-    const li = $('#lastInsp'); if (li) li.textContent = z.inspeksi; saveLayout();
-    toast('Inspeksi selesai dicatat', `${z.nama} · ${open ? open + ' pengendalian terbuka diteruskan ke ' + z.pj.nama : 'semua pengendalian terverifikasi'}`, 'terkendali');
-    addTimeline({ jam, judul: `Inspeksi ${z.nama} selesai`, ket: `${z.kode} · ${open ? open + ' tindak lanjut' : 'tanpa temuan'}`, st: open ? 'tindak' : 'selesai' });
-  });
-  $('#btnHazard').addEventListener('click', () => openHazard(z.id));
   $$('#panelBody [data-act]').forEach(b => b.addEventListener('click', () => zoneAct(z, b.dataset.act, b)));
   $$('#panelBody [data-f]').forEach(inp => inp.addEventListener('change', () => zoneField(z, inp.dataset.f, inp.value)));
 }
@@ -5784,9 +5774,8 @@ function openInfo(kind) {
     B.innerHTML = `<dl class="kv">
       <dt>Zona risiko aktif</dt><dd>${rz.length}</dd>
       <dt>▲ Risiko tinggi / ◆ sedang / ● terkendali</dt><dd>${nL('tinggi')} / ${nL('sedang')} / ${nL('terkendali')}</dd>
-      <dt>Zona diinspeksi hari ini</dt><dd>${rz.filter(z => state.inspected.has(z.id)).length} dari ${rz.length}</dd>
       <dt>Izin kerja aktif</dt><dd>${izinAktif().length}</dd>
-      <dt>Pengendalian terbuka</dt><dd>${rz.reduce((s, z) => s + z.kontrol.filter(k => !k.ok).length, 0)}</dd>
+      <dt>Bahaya teridentifikasi / pengendalian risiko</dt><dd>${rz.reduce((s, z) => s + z.identifikasi.length, 0)} / ${rz.reduce((s, z) => s + z.kontrol.length, 0)}</dd>
       <dt>Zona kerja / mandor-subkon / pekerja</dt><dd>${WORKZONES.length} / ${WORKZONES.reduce((s, w) => s + w.mandor.length, 0)} / ${WORKZONES.reduce((s, w) => s + nPekerja(w), 0)}</dd>
       <dt>Durasi proyek</dt><dd>${pi.pakai} dari ${pi.total} hari · sisa ${pi.sisa}</dd></dl>`;
     F.innerHTML = '<button class="btn" type="button" data-x>Tutup</button><button class="btn primary" type="button" id="infoExport">Ekspor ringkasan</button>';
@@ -6004,6 +5993,7 @@ function openZoneForm(z) { if (!isAdmin()) return;
   $('#fzLevel').value = z ? z.level : 'sedang'; $('#fzObjek').value = z ? z.objek || '' : '';
   $('#fzBahaya').value = z ? z.bahaya : ''; $('#fzPj').value = z ? z.pj.nama : '';
   $('#fzDesc').value = z ? z.deskripsi : '';
+  $('#fzIden').value = (z ? z.identifikasi : []).join('\n');
   $('#fzKontrol').value = (z ? z.kontrol.map(k => k.t) : KONTROL_BAWAAN).join('\n');
   showDialog($('#dlgZone'));
 }
@@ -6015,6 +6005,7 @@ $('#formZone').addEventListener('submit', e => {
   z.level = $('#fzLevel').value; z.objek = $('#fzObjek').value;
   z.bahaya = $('#fzBahaya').value.trim(); z.deskripsi = $('#fzDesc').value.trim() || (formZone ? '' : 'Zona ditambahkan lewat mode Atur zona.');
   z.pj = Object.assign({}, z.pj, { nama: $('#fzPj').value.trim() || 'Belum ditetapkan' });
+  z.identifikasi = $('#fzIden').value.split('\n').map(s => s.trim()).filter(Boolean);
   const butir = $('#fzKontrol').value.split('\n').map(s => s.trim()).filter(Boolean);
   z.kontrol = (butir.length ? butir : KONTROL_BAWAAN).map(t => ({ t, ok: (old.find(k => k.t === t) || {}).ok || false }));
   const full = normalizeZone(z); Object.assign(z, full);
