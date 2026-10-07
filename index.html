@@ -130,7 +130,26 @@ svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-wid
 .zlabel.off{opacity:0;pointer-events:none}
 
 /* HUD ringkas di atas model */
-.hud{position:absolute;z-index:3;left:14px;top:14px;display:flex;border-radius:12px;max-width:calc(100% - 28px);overflow-x:auto;scrollbar-width:none}
+.topstack{position:absolute;z-index:3;left:14px;top:14px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:calc(100% - 28px);pointer-events:none}
+.topstack>*,.toprow>*{pointer-events:auto}
+.toprow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;max-width:100%;pointer-events:none}
+.stage.panel-open .topstack{max-width:calc(100% - var(--panel-w) - 38px)}
+.hud{display:flex;border-radius:12px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+/* Cuaca bandara (data pengamatan terbaru) */
+.wx{display:flex;border-radius:12px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.wx::-webkit-scrollbar{display:none}
+.wx li{padding:8px 14px 9px;min-width:max-content}
+.wx li+li{border-left:1px solid var(--line)}
+.wx .now{display:flex;align-items:center;gap:11px}
+.wx .now svg{width:46px;height:46px;flex:none}
+.wx .when{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.wx .now b{display:block;font-size:21px;line-height:1.15;font-weight:650;font-variant-numeric:tabular-nums}
+.wx .now em{display:block;font-style:normal;font-size:12px}
+.wx .now small{display:block;font-size:10.5px;color:var(--dim)}
+.wx .m svg.ic{display:block;width:16px;height:16px;margin-bottom:5px;color:var(--blue)}
+.wx .m span{display:block;font-size:11.5px;color:var(--muted)}
+.wx .m b{display:block;margin-top:2px;font-size:14.5px;font-weight:650;font-variant-numeric:tabular-nums}
+.wx.stale .when{color:var(--amber)}
 .hud::-webkit-scrollbar{display:none}
 .hud li{padding:8px 14px 9px;min-width:max-content;position:relative}
 .hud li+li{border-left:1px solid var(--line)}
@@ -194,7 +213,7 @@ body:not(.is-admin) :is(#permits .pmain,#ctrlList .ctrl){cursor:default}
 .adm-msg.err{color:#ff8a8f}
 .adm-code{width:100%;min-height:74px;padding:10px 12px;border-radius:10px;border:1px solid var(--line2);background:rgba(140,175,215,.07);color:var(--text);font:12.5px/1.5 ui-monospace,Consolas,monospace;resize:none;word-break:break-all}
 /* Mode atur zona */
-.editbar{position:absolute;z-index:3;left:14px;top:118px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px 4px 4px 12px;border-radius:12px;max-width:calc(100% - 28px);border-color:rgba(86,168,255,.55)}
+.editbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:4px 4px 4px 12px;border-radius:12px;max-width:100%;border-color:rgba(86,168,255,.55)}
 .editbar b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--blue);margin-right:6px}
 .editbar button{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted);transition:background .2s,color .2s}
 .editbar button:hover{color:var(--text);background:rgba(140,175,215,.14)}
@@ -247,7 +266,7 @@ input[type=date]{color-scheme:dark}
 .steps button:hover{background:rgba(140,175,215,.18)}
 .editbox .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stage.panel-open .tools{right:calc(var(--panel-w) + 26px)}
-.hint{position:absolute;z-index:2;right:16px;top:18px;transition:opacity .3s;font-size:11.5px;color:var(--dim);pointer-events:none;white-space:nowrap;display:none}
+.hint{position:absolute;z-index:2;right:16px;bottom:66px;transition:opacity .3s;font-size:11.5px;color:var(--dim);pointer-events:none;white-space:nowrap;display:none}
 .noscene{position:absolute;inset:0;z-index:2;display:none;place-content:center;gap:10px;padding:24px;text-align:center;color:var(--muted)}
 .noscene.show{display:grid}
 .noscene div{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
@@ -433,12 +452,14 @@ fieldset{border:0;margin:0;padding:0}
   .btn.primary span{display:none}
   .btn.primary{padding:0 12px}
   .stage{height:70vh;min-height:480px}
-  .hud{left:8px;top:8px;max-width:calc(100% - 16px)}
+  .topstack,.stage.panel-open .topstack{left:8px;top:8px;max-width:calc(100% - 16px)}
+  .wx{max-width:calc(100% - 56px)}
+  .wx li{padding:7px 11px}
   .hud li{padding:7px 11px}
   .hud b{font-size:17px}
   .dock{left:8px;bottom:8px;max-width:calc(100% - 16px)}
   .tools{right:8px;bottom:auto;top:112px;flex-direction:column}
-  .editbar{left:8px;top:112px;max-width:calc(100% - 68px)}
+  .editbar{max-width:calc(100% - 56px)}
   .placing{bottom:112px;white-space:normal}
   .tools button span{display:none}
   .stage.panel-open .tools{right:8px}
@@ -475,6 +496,11 @@ fieldset{border:0;margin:0;padding:0}
   <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
   <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></symbol>
   <symbol id="i-team" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c.6-3.2 2.7-5 5.500-5s4.900 1.800 5.500 5"/><circle cx="17" cy="9" r="2.3"/><path d="M16 14.200c2.400.2 3.900 1.700 4.500 4.300"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.500 12s3.500-6.500 9.500-6.500 9.500 6.500 9.500 6.500-3.500 6.500-9.500 6.500S2.500 12 2.500 12z"/><circle cx="12" cy="12" r="2.800"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M3 9h10.500a2.800 2.800 0 1 0-2.700-3.500"/><path d="M3 13h15.500a2.800 2.800 0 1 1-2.700 3.500"/><path d="M3 17h7"/></symbol>
+  <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.500s6 6.300 6 10.700a6 6 0 0 1-12 0c0-4.400 6-10.700 6-10.700z"/></symbol>
+  <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4.500 17.500a9 9 0 1 1 15 0"/><path d="M12 13l4-4.500"/><circle cx="12" cy="13" r="1.300"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.500"/><path d="M15.500 8.500l-2 5-5 2 2-5z"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
   <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></symbol>
 </svg>
@@ -537,17 +563,6 @@ fieldset{border:0;margin:0;padding:0}
       <canvas id="scene" tabindex="0" role="img"
         aria-label="Model 3D terminal bandara dengan pin zona risiko, perancah, panel listrik, dan area material. Gunakan tombol panah untuk memutar, Shift dan panah untuk menggeser, plus dan minus untuk zoom."></canvas>
       <div class="labels" id="labels"></div>
-      <div class="editbar glass" id="editbar" role="toolbar" aria-label="Atur tata letak zona" hidden>
-        <b>Atur zona</b>
-        <button type="button" id="edAdd"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona</button>
-        <button type="button" id="edExport">Ekspor</button>
-        <button type="button" id="edImport">Impor</button>
-        <button type="button" id="edPinCopies">Sembunyikan pin salinan</button>
-        <button type="button" id="edReset">Reset bawaan</button>
-        <button type="button" id="edDone" class="done">Selesai</button>
-        <span class="tip">Seret objek untuk menggeser · klik zona untuk memunculkan pegangan naik–turun dan putar · zona tanpa pin tetap bisa diklik di sini</span>
-        <input type="file" id="edFile" accept=".json,application/json" hidden>
-      </div>
       <div class="placing glass" id="placing" role="status" hidden><span>Klik lokasi pada model untuk menempatkan <b id="placingName"></b></span><button type="button" id="placeCancel">Batal</button></div>
       <div class="loading glass" id="loading" role="status"><span id="loadTxt">Memuat model 3D…</span><i class="bar" aria-hidden="true"><i id="loadBar"></i></i></div>
       <div class="noscene" id="noscene">
@@ -555,23 +570,48 @@ fieldset{border:0;margin:0;padding:0}
         <div id="nosceneZones"></div>
       </div>
 
-      <ul class="hud glass" aria-label="Ringkasan proyek">
-        <li><b id="stZona">0</b><span>Zona risiko aktif</span></li>
-        <li class="lv-tinggi"><b id="stTinggi">0</b><span><i aria-hidden="true">▲</i> Risiko tinggi</span></li>
-        <li><b id="stKerja">0</b><span>Zona kerja</span></li>
-        <li><b id="stIzin">0</b><span>Izin kerja aktif</span></li>
-        <li class="proj">
-          <span class="ph">Durasi proyek<button type="button" id="projBtn" aria-label="Atur durasi proyek"><svg class="ic"><use href="#i-edit"/></svg></button></span>
-          <b><span id="pjPakai">0</span><small> / <span id="pjTotal">0</span> hari</small></b>
-          <i class="pbar" id="pjBar" role="img" aria-label=""><i class="u"></i><i class="r"></i></i>
-          <span class="pl" id="pjInfo"></span>
-        </li>
-      </ul>
+
+      <div class="topstack">
+        <div class="toprow">
+          <ul class="hud glass" aria-label="Ringkasan proyek">
+            <li><b id="stZona">0</b><span>Zona risiko aktif</span></li>
+            <li class="lv-tinggi"><b id="stTinggi">0</b><span><i aria-hidden="true">▲</i> Risiko tinggi</span></li>
+            <li><b id="stKerja">0</b><span>Zona kerja</span></li>
+            <li><b id="stIzin">0</b><span>Izin kerja aktif</span></li>
+            <li class="proj">
+              <span class="ph">Durasi proyek<button type="button" id="projBtn" aria-label="Atur durasi proyek"><svg class="ic"><use href="#i-edit"/></svg></button></span>
+              <b><span id="pjPakai">0</span><small> / <span id="pjTotal">0</span> hari</small></b>
+              <i class="pbar" id="pjBar" role="img" aria-label=""><i class="u"></i><i class="r"></i></i>
+              <span class="pl" id="pjInfo"></span>
+            </li>
+          </ul>
+          <ul class="wx glass" id="wx" aria-label="Cuaca Bandara Sentani" aria-live="polite">
+            <li class="now"><span id="wxIcon" aria-hidden="true"></span>
+              <div><span class="when" id="wxWhen">Memuat cuaca…</span><b id="wxTemp">– °C</b><em id="wxCond">Bandara Sentani</em><small id="wxSrc"></small></div></li>
+            <li class="m"><svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg><span>Jarak pandang</span><b id="wxVis">–</b></li>
+            <li class="m"><svg class="ic" aria-hidden="true"><use href="#i-wind"/></svg><span>Kecepatan angin</span><b id="wxWind">–</b></li>
+            <li class="m"><svg class="ic" aria-hidden="true"><use href="#i-drop"/></svg><span>Titik embun</span><b id="wxDew">–</b></li>
+            <li class="m"><svg class="ic" aria-hidden="true"><use href="#i-gauge"/></svg><span>Tekanan udara</span><b id="wxPres">–</b></li>
+            <li class="m"><svg class="ic" aria-hidden="true"><use href="#i-compass"/></svg><span>Arah angin dari</span><b id="wxDir">–</b></li>
+          </ul>
+        </div>
+        <div class="editbar glass" id="editbar" role="toolbar" aria-label="Atur tata letak zona" hidden>
+          <b>Atur zona</b>
+          <button type="button" id="edAdd"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona</button>
+          <button type="button" id="edExport">Ekspor</button>
+          <button type="button" id="edImport">Impor</button>
+          <button type="button" id="edPinCopies">Sembunyikan pin salinan</button>
+          <button type="button" id="edReset">Reset bawaan</button>
+          <button type="button" id="edDone" class="done">Selesai</button>
+          <span class="tip">Seret objek untuk menggeser · klik zona untuk memunculkan pegangan naik–turun dan putar · zona tanpa pin tetap bisa diklik di sini</span>
+          <input type="file" id="edFile" accept=".json,application/json" hidden>
+        </div>
+      </div>
 
       <div class="dock">
         <div class="dock-row">
           <div class="telemetry glass" aria-hidden="true">
-            <span id="tmWind">Angin <b>16 km/j</b></span>
+            <span id="tmWind">Angin <b>–</b></span>
             <span>Pekerja terdata <b id="tmCrew">0</b></span>
           </div>
           <div class="layers glass" role="group" aria-label="Lapisan model" id="layers"><span aria-hidden="true">Lapisan</span></div>
@@ -4669,6 +4709,9 @@ const LAYOUT_URL = '';
 // Sinkronisasi bersama (opsional): alamat Cloudflare Worker, mis. 'https://safebuild-sync.nama.workers.dev'.
 // Bila diisi, perubahan admin tersimpan ke server dan otomatis terlihat oleh semua pengunjung,
 // dan kata sandi admin diperiksa oleh server (ADMIN_HASH di bawah tidak dipakai lagi).
+// Cuaca: stasiun pengamatan bandara (kode ICAO) dan koordinatnya. Data METAR diambil lewat Worker (SYNC_URL + '/cuaca');
+// bila Worker belum menyediakannya, halaman memakai data model Open-Meteo untuk koordinat yang sama.
+const CUACA = { icao: 'WAJJ', nama: 'Bandara Sentani', lat: -2.5769, lon: 140.5164, zona: 'WIT', utc: 9, cekMenit: 3 };
 const SYNC_URL = 'https://safebuild-sync.mahbub-abr021.workers.dev/';
 
 const ZONES = [
@@ -6367,11 +6410,105 @@ if (SYNC) {
 /* =====================================================================
    K. TELEMETRI SIMULATIF & INISIALISASI
    ===================================================================== */
-let wind = 16;
-setInterval(() => {
-  wind = Math.min(30, Math.max(9, wind + (Math.random() - 0.48) * 3));
-  const el = $('#tmWind'); el.innerHTML = `Angin <b>${Math.round(wind)} km/j</b>`; el.classList.toggle('warn', wind >= 24);
-}, 3000);
+/* ---------- Cuaca bandara: pengamatan METAR terbaru, diperiksa ulang berkala ---------- */
+const BLN = ['JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+const ARAH = ['Utara', 'Timur Laut', 'Timur', 'Tenggara', 'Selatan', 'Barat Daya', 'Barat', 'Barat Laut'];
+const angka = (n, d = 0) => Number(n).toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d });
+function ikonCuaca(jenis, siang) {
+  const awan = (y, f) => `<path d="M13 ${y + 14}h22a7.500 7.500 0 0 0 1.200-14.900A10.500 10.500 0 0 0 16 ${y - 2.500}a8.800 8.800 0 0 0-3 ${16.500}z" fill="${f}"/>`;
+  const surya = siang
+    ? '<g stroke="#ffc83d" stroke-width="2.400" stroke-linecap="round"><path d="M17 3v3M5.700 7.700l2.100 2.100M3 19h3M28.300 7.700l-2.100 2.100"/></g><circle cx="17" cy="18" r="7.500" fill="#ffc83d"/>'
+    : '<path d="M23 6a10 10 0 1 0 6.500 15.500A8.500 8.500 0 0 1 23 6z" fill="#cfd9e8"/>';
+  const hujan = '<g stroke="#56a8ff" stroke-width="2.400" stroke-linecap="round"><path d="M17 40l-2 4M25 40l-2 4M33 40l-2 4"/></g>';
+  const isi = {
+    cerah: siang ? '<g stroke="#ffc83d" stroke-width="2.600" stroke-linecap="round"><path d="M24 5v4M24 39v4M5 24h4M39 24h4M10.600 10.600l2.800 2.800M34.600 34.600l2.800 2.800M10.600 37.400l2.800-2.800M34.600 13.400l2.800-2.800"/></g><circle cx="24" cy="24" r="9" fill="#ffc83d"/>'
+                 : '<path d="M30 8a16 16 0 1 0 10 25A13.500 13.500 0 0 1 30 8z" fill="#cfd9e8"/>',
+    berawan: surya + awan(24, '#eaf1f9'),
+    mendung: awan(14, '#9fb3c8') + awan(22, '#eaf1f9'),
+    hujan: awan(18, '#dbe6f2') + hujan,
+    petir: awan(18, '#b9c8d8') + '<path d="M26 34l-6 8h5l-2 5 7-9h-5z" fill="#ffc83d"/>',
+    kabut: awan(12, '#dbe6f2') + '<g stroke="#a6b8cc" stroke-width="2.400" stroke-linecap="round"><path d="M10 34h28M14 40h22"/></g>'
+  }[jenis] || awan(20, '#eaf1f9');
+  return `<svg viewBox="0 0 48 48" role="img" aria-label="${jenis}">${isi}</svg>`;
+}
+function kondisiMetar(wx, tutupan) {                        // fenomena cuaca didahulukan, lalu tutupan awan tertinggi
+  if (/TS/.test(wx)) return ['Hujan petir', 'petir'];
+  if (/RA|SH/.test(wx)) return [wx.includes('+') ? 'Hujan lebat' : wx.includes('-') ? 'Hujan ringan' : 'Hujan', 'hujan'];
+  if (/DZ/.test(wx)) return ['Gerimis', 'hujan'];
+  if (/FG/.test(wx)) return ['Kabut', 'kabut'];
+  if (/BR/.test(wx)) return ['Kabut tipis', 'kabut'];
+  if (/HZ|FU|DU|SA/.test(wx)) return ['Udara kabur', 'kabut'];
+  return [['Cerah', 'cerah'], ['Cerah berawan', 'berawan'], ['Berawan', 'berawan'], ['Berawan tebal', 'mendung'], ['Mendung', 'mendung']][tutupan];
+}
+function dariMetar(m) {                                     // m = satu laporan METAR dari aviationweather.gov
+  const raw = String(m.rawOb || ''), tok = raw.split(/\s+/);
+  let jarak = null;
+  if (tok.includes('CAVOK')) jarak = 10000;
+  else {
+    let i = tok.findIndex(x => /^(\d{3}|VRB)\d{2,3}(G\d{2,3})?(KT|MPS)$/.test(x));
+    if (i >= 0) { i++; if (/^\d{3}V\d{3}$/.test(tok[i] || '')) i++; if (/^\d{4}$/.test(tok[i] || '')) jarak = Math.min(10000, +tok[i] === 9999 ? 10000 : +tok[i]); }
+  }
+  if (jarak == null && m.visib != null) jarak = String(m.visib).includes('+') ? 10000 : Number.isFinite(+m.visib) ? Math.min(10000, Math.round(+m.visib * 1609.34)) : null;
+  const urut = { SKC: 0, CLR: 0, NSC: 0, NCD: 0, CAVOK: 0, FEW: 1, SCT: 2, BKN: 3, OVC: 4, OVX: 4, VV: 4 };
+  const tutupan = Math.max(urut[m.cover] || 0, ...(Array.isArray(m.clouds) ? m.clouds.map(c => urut[c.cover] || 0) : [0]));
+  const t = m.obsTime ? m.obsTime * 1000 : Date.parse(m.reportTime);
+  const [kondisi, ikon] = kondisiMetar(String(m.wxString || ''), tutupan);
+  const kt = Number.isFinite(+m.wspd) ? +m.wspd : null;
+  return { t, suhu: m.temp, embun: m.dewp, tekan: m.altim, kmh: kt == null ? null : kt * 1.852, arah: m.wdir === 'VRB' ? 'VRB' : Number.isFinite(+m.wdir) ? +m.wdir : null,
+    jarak, kondisi, ikon, sumber: `BMKG · METAR ${m.icaoId || CUACA.icao}`, mentah: raw };
+}
+function dariModel(d) {                                     // cadangan: data model Open-Meteo untuk koordinat bandara
+  const c = d && d.current; if (!c) return null;
+  const k = c.weather_code;
+  const [kondisi, ikon] = k >= 95 ? ['Hujan petir', 'petir'] : k >= 80 ? ['Hujan lokal', 'hujan'] : k >= 61 ? ['Hujan', 'hujan'] : k >= 51 ? ['Gerimis', 'hujan']
+    : k === 45 || k === 48 ? ['Kabut', 'kabut'] : k === 3 ? ['Mendung', 'mendung'] : k === 2 ? ['Berawan', 'berawan'] : k === 1 ? ['Cerah berawan', 'berawan'] : ['Cerah', 'cerah'];
+  return { t: Date.parse(c.time + 'Z'), suhu: c.temperature_2m, embun: c.dew_point_2m, tekan: c.pressure_msl, kmh: c.wind_speed_10m, arah: c.wind_direction_10m,
+    jarak: c.visibility == null ? null : Math.min(10000, c.visibility), kondisi, ikon, sumber: 'Open-Meteo · data model', mentah: '' };
+}
+let cuacaKunci = '', cuacaT = 0;
+function tandaiBasi() { $('#wx').classList.toggle('stale', !!cuacaT && Date.now() - cuacaT > 100 * 60000); }
+function tampilCuaca(w) {
+  const kunci = w.t + '|' + w.sumber + '|' + w.mentah;
+  cuacaT = w.t; tandaiBasi();
+  if (kunci === cuacaKunci) return;                         // tidak ada laporan baru dari sumber
+  cuacaKunci = kunci;
+  const d = new Date(w.t + CUACA.utc * 3600000), jam = d.getUTCHours(), siang = jam >= 6 && jam < 18;
+  const tenang = w.kmh != null && w.kmh < 0.5;
+  $('#wxIcon').innerHTML = ikonCuaca(w.ikon, siang);
+  $('#wxWhen').textContent = `${d.getUTCDate()} ${BLN[d.getUTCMonth()]} ${d.getUTCFullYear()} • ${String(jam).padStart(2, '0')}.${String(d.getUTCMinutes()).padStart(2, '0')} ${CUACA.zona}`;
+  $('#wxTemp').textContent = w.suhu == null ? '– °C' : `${angka(w.suhu)} °C`;
+  $('#wxCond').textContent = w.kondisi;
+  $('#wxSrc').textContent = w.sumber;
+  $('#wxVis').textContent = w.jarak == null ? '–' : w.jarak >= 10000 ? '≥10 km' : w.jarak >= 1000 ? `${angka(w.jarak / 1000, w.jarak % 1000 ? 1 : 0)} km` : `${angka(w.jarak)} m`;
+  $('#wxWind').textContent = w.kmh == null ? '–' : tenang ? 'Tenang' : `${angka(w.kmh, 1)} km/jam`;
+  $('#wxDew').textContent = w.embun == null ? '–' : `${angka(w.embun)} °C`;
+  $('#wxPres').textContent = w.tekan == null ? '–' : `${angka(w.tekan)} hPa`;
+  $('#wxDir').textContent = tenang ? '–' : w.arah === 'VRB' ? 'Variabel' : w.arah == null ? '–' : `${ARAH[Math.round(w.arah / 45) % 8]} (${angka(w.arah)}°)`;
+  $('#wx').title = w.mentah ? `${w.mentah}\nSumber: ${w.sumber}` : `Sumber: ${w.sumber}`;
+  const el = $('#tmWind'); el.innerHTML = `Angin <b>${w.kmh == null ? '–' : angka(w.kmh) + ' km/j'}</b>`; el.classList.toggle('warn', w.kmh != null && w.kmh >= 24);
+}
+async function ambilCuaca() {
+  let w = null;
+  if (SYNC) {
+    try {
+      const r = await fetch(`${SYNC}/cuaca?id=${CUACA.icao}`, { cache: 'no-store' });
+      if (r.ok) { const d = await r.json(); if (d && d.data && (d.data.obsTime || d.data.reportTime)) w = dariMetar(d.data); }
+    } catch (_) {}
+  }
+  if (!w) {
+    try {
+      const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${CUACA.lat}&longitude=${CUACA.lon}&current=temperature_2m,dew_point_2m,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,visibility&timezone=UTC`, { cache: 'no-store' });
+      if (r.ok) w = dariModel(await r.json());
+    } catch (_) {}
+  }
+  if (w && Number.isFinite(w.t)) tampilCuaca(w);
+  else if (!cuacaKunci) { $('#wxWhen').textContent = 'Cuaca tidak tersedia'; $('#wxCond').textContent = 'Periksa koneksi internet'; }
+  else tandaiBasi();
+}
+$('#wxIcon').innerHTML = ikonCuaca('berawan', true);
+ambilCuaca();
+setInterval(() => { if (document.visibilityState === 'visible') ambilCuaca(); }, CUACA.cekMenit * 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') ambilCuaca(); });
 
 buildPermits(); renderStats();
 $('#todayDate').textContent = tgl(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
