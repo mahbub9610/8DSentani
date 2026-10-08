@@ -205,7 +205,7 @@ svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-wid
 .tools button:disabled{opacity:.4;cursor:not-allowed}
 [hidden]{display:none !important}
 /* Mode admin: tanpa masuk sebagai admin, halaman hanya bisa dilihat */
-body:not(.is-admin) :is(#editBtn,#editbar,#projBtn,#perfBtn,#permitAdd,.pdel,#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox){display:none !important}
+body:not(.is-admin) :is(#editBtn,#editbar,#projBtn,#perfBtn,#fenceBar,#permitAdd,.pdel,#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox){display:none !important}
 body:not(.is-admin) :is(#permits .pmain,#ctrlList .ctrl){cursor:default}
 .sync.bad i{background:#ff6166;box-shadow:none;animation:none}
 .iconbtn.on{color:var(--blue);border-color:rgba(86,168,255,.6);background:rgba(86,168,255,.14)}
@@ -221,6 +221,15 @@ body:not(.is-admin) :is(#permits .pmain,#ctrlList .ctrl){cursor:default}
 .editbar svg.ic{width:15px;height:15px}
 .editbar .tip{flex-basis:100%;padding:2px 8px 4px 0;font-size:12px;color:var(--muted)}
 .placing{position:absolute;z-index:4;left:50%;bottom:72px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;padding:8px 8px 8px 14px;border-radius:12px;font-size:13px;border-color:var(--blue);max-width:calc(100% - 20px)}
+.fencebar{position:absolute;z-index:4;left:50%;bottom:72px;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:8px;border-radius:12px;font-size:13px;border-color:#ffb547;max-width:calc(100% - 20px);width:max-content}
+.fencebar .msg{padding:0 6px;flex:1 1 260px;min-width:0}
+.fencebar .msg b{color:#ffcf7a;font-variant-numeric:tabular-nums}
+.fencebar button,.fencebar label{display:inline-flex;align-items:center;gap:6px;min-height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);font-weight:600;font-size:12.5px;cursor:pointer}
+.fencebar label input{accent-color:#ffb547}
+.fencebar button:hover,.fencebar label:hover{background:rgba(140,175,215,.14)}
+.fencebar .done{color:#1d1300;background:#ffb547;border-color:#ffb547}
+.fencebar .done:hover{background:#ffc66e}
+.fencebar button:disabled,.fencebar label:has(input:disabled){opacity:.45;cursor:default}
 .placing button{min-height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);font-weight:600;font-size:12.5px}
 .placing button:hover{background:rgba(140,175,215,.14)}
 .zlabel.wlabel{border-radius:8px}
@@ -477,6 +486,7 @@ fieldset{border:0;margin:0;padding:0}
   .tools{right:8px;bottom:auto;top:112px;flex-direction:column}
   .editbar{max-width:calc(100% - 56px)}
   .placing{bottom:112px;white-space:normal}
+  .fencebar{bottom:112px}
   .tools button span{display:none}
   .stage.panel-open .tools{right:8px}
   .zlabel .n{display:none}
@@ -580,6 +590,13 @@ fieldset{border:0;margin:0;padding:0}
         aria-label="Model 3D terminal bandara dengan pin zona risiko, perancah, panel listrik, dan area material. Gunakan tombol panah untuk memutar, Shift dan panah untuk menggeser, plus dan minus untuk zoom."></canvas>
       <div class="labels" id="labels"></div>
       <div class="placing glass" id="placing" role="status" hidden><span>Klik lokasi pada model untuk menempatkan <b id="placingName"></b></span><button type="button" id="placeCancel">Batal</button></div>
+      <div class="fencebar glass" id="fenceBar" role="toolbar" aria-label="Gambar jalur pagar" hidden>
+        <span class="msg" id="fenceMsg" aria-live="polite">Klik titik awal jalur pagar pada model.</span>
+        <button type="button" id="fenceUndo">Urungkan titik</button>
+        <label><input type="checkbox" id="fenceClose"> Tutup jalur</label>
+        <button type="button" id="fenceCancel">Batal</button>
+        <button type="button" id="fenceDone" class="done">Selesai</button>
+      </div>
       <div class="loading glass" id="loading" role="status"><span id="loadTxt">Memuat model 3D…</span><i class="bar" aria-hidden="true"><i id="loadBar"></i></i></div>
       <div class="noscene" id="noscene">
         <p><b>Model 3D tidak dapat dimuat.</b><br>Periksa koneksi internet (Three.js dimuat dari CDN), dukungan WebGL, atau lokasi file model. Zona tetap dapat dibuka:</p>
@@ -614,6 +631,7 @@ fieldset{border:0;margin:0;padding:0}
         <div class="editbar glass" id="editbar" role="toolbar" aria-label="Atur tata letak zona" hidden>
           <b>Atur zona</b>
           <button type="button" id="edAdd"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona</button>
+        <button type="button" id="edFence"><svg class="ic"><use href="#i-plus"/></svg>Gambar pagar</button>
           <button type="button" id="edExport">Ekspor</button>
           <button type="button" id="edImport">Impor</button>
           <button type="button" id="edPinCopies">Sembunyikan pin salinan</button>
@@ -4830,6 +4848,22 @@ const WARNA_KERJA = ['#4f9dff', '#c77dff', '#22d3c5', '#ff8fb1', '#f5d04e', '#ff
 const PROYEK = { mulai: '2026-04-01', durasi: 300 };
 // Safety performance: jam kerja per hari dan jumlah korban kecelakaan (bisa diubah admin lewat tombol "Ubah")
 const KINERJA = { jamPerHari: 8, meninggal: 0, lukaBerat: 0, lukaRingan: 0 };
+// Pagar pengaman: jalur titik [x, y, z] (meter, koordinat adegan) yang digambar admin lewat "Atur zona" → "Gambar pagar"
+const PAGAR = [];
+const PAGAR_SPEK = { tinggi: 1.2, tiang: 0.1, jarakMaks: 2.5, ledY: [0.4, 0.95], ledTiang: [0.3, 0.75], dash: 0.3, gap: 0.15, led: 0.04 };
+function pagarUkur(titik, tutup) {                          // panjang, jumlah tiang, dan jarak antar tiang sebuah jalur
+  const pts = tutup && titik.length > 2 ? titik.concat([titik[0]]) : titik;
+  let panjang = 0, tiang = 0, jMin = Infinity, jMax = 0, ruas = 0;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const L = Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][2] - pts[i][2]);
+    if (L < 0.05) continue;
+    const n = Math.max(1, Math.ceil(L / PAGAR_SPEK.jarakMaks - 1e-9));
+    panjang += L; tiang += n + (ruas === 0 ? 1 : 0); ruas++;
+    jMin = Math.min(jMin, L / n); jMax = Math.max(jMax, L / n);
+  }
+  if (tutup && titik.length > 2 && ruas) tiang -= 1;
+  return { panjang, tiang, ruas, jarakMin: ruas ? jMin : 0, jarakMaks: jMax };
+}
 const DONUT = [
   { key: 'tinggi', css: 'var(--red)' },
   { key: 'sedang', css: 'var(--amber)' },
@@ -4911,7 +4945,7 @@ try {
 } catch (_) {}
 function isAdmin() { return adminOn; }
 // Penjaga: klik dan kirim formulir pengubah data diabaikan bila bukan admin
-const ADMIN_ONLY = '#editBtn,#editbar,#projBtn,#perfBtn,#permitAdd,#permits [data-del],#permits [data-permit],#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox,#ctrlList';
+const ADMIN_ONLY = '#editBtn,#editbar,#fenceBar,#projBtn,#perfBtn,#permitAdd,#permits [data-del],#permits [data-permit],#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox,#ctrlList';
 document.addEventListener('click', e => {
   if (!isAdmin() && e.target.closest && e.target.closest(ADMIN_ONLY)) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, true);
@@ -4985,21 +5019,25 @@ const applyWork = list => { WORKZONES.splice(0, WORKZONES.length, ...list.map(w 
 const validProyek = p => !!p && /^\d{4}-\d{2}-\d{2}$/.test(p.mulai || '') && Number.isInteger(p.durasi) && p.durasi >= 1 && p.durasi <= 10000;
 const cacah = v => Number.isInteger(v) && v >= 0 && v <= 9999;
 const validKinerja = k => !!k && Number.isFinite(k.jamPerHari) && k.jamPerHari > 0 && k.jamPerHari <= 24 && cacah(k.meninggal) && cacah(k.lukaBerat) && cacah(k.lukaRingan);
+const validPagar = a => Array.isArray(a) && a.every(f => f && typeof f.id === 'string' && Array.isArray(f.titik) && f.titik.length >= 2 &&
+  f.titik.every(t => Array.isArray(t) && t.length === 3 && t.every(Number.isFinite)));
+const normalizePagar = f => ({ id: f.id, nama: String(f.nama || 'Pagar').slice(0, 60), titik: f.titik.map(t => t.map(Number)), tutup: !!f.tutup && f.titik.length > 2 });
 function parseLayout(d) {
   const zona = d && (Array.isArray(d) ? d : d.zona), kerja = d && !Array.isArray(d) ? d.kerja : null;
   if (!validZones(zona) || (kerja != null && !validWork(kerja))) return null;
   const pr = d && !Array.isArray(d) ? d.proyek : null;
   const iz = d && !Array.isArray(d) ? d.izin : null;
-  const kn = d && !Array.isArray(d) ? d.kinerja : null;
-  return { zona, kerja: kerja || null, proyek: validProyek(pr) ? pr : null, izin: validPermits(iz) ? iz : null, kinerja: validKinerja(kn) ? kn : null };
+  const kn = d && !Array.isArray(d) ? d.kinerja : null, pg = d && !Array.isArray(d) ? d.pagar : null;
+  return { zona, kerja: kerja || null, proyek: validProyek(pr) ? pr : null, izin: validPermits(iz) ? iz : null, kinerja: validKinerja(kn) ? kn : null, pagar: validPagar(pg) ? pg : null };
 }
 function applyLayout(L) {
   applyZones(L.zona); if (L.kerja) applyWork(L.kerja);
   applyPermits(L.izin || permitsFromZones(ZONES));          // file lama: izin diturunkan dari data zona
   if (L.proyek) Object.assign(PROYEK, { mulai: L.proyek.mulai, durasi: L.proyek.durasi });
+  if (L.pagar) PAGAR.splice(0, PAGAR.length, ...L.pagar.map(normalizePagar));
   if (L.kinerja) Object.assign(KINERJA, { jamPerHari: L.kinerja.jamPerHari, meninggal: L.kinerja.meninggal, lukaBerat: L.kinerja.lukaBerat, lukaRingan: L.kinerja.lukaRingan });
 }
-const layoutData = () => ({ versi: 3, zona: ZONES, kerja: WORKZONES, izin: PERMITS, proyek: PROYEK, kinerja: KINERJA });
+const layoutData = () => ({ versi: 3, zona: ZONES, kerja: WORKZONES, izin: PERMITS, proyek: PROYEK, kinerja: KINERJA, pagar: PAGAR });
 const saveLayout = () => { const ok = store.set(layoutData()); queueSync(); return ok; };
 applyWork(WORKZONES); applyPermits(DEFAULT_PERMITS);
 { const saved = parseLayout(store.get()); if (saved) applyLayout(saved); }
@@ -5447,7 +5485,7 @@ function initScene() {
   canvas.addEventListener('pointerdown', e => {
     ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0;
     drag = null;
-    if (!placeCb && ptrs.size === 1 && e.button === 0 && !e.shiftKey) {
+    if (!placeCb && !draw && ptrs.size === 1 && e.button === 0 && !e.shiftKey) {
       const hd = editing ? grabHandle(e) : null, g = hd ? null : grabZone(e);
       if (hd) {
         const mk = GZ.m, zz = mk.z;
@@ -5472,8 +5510,9 @@ function initScene() {
   canvas.addEventListener('pointermove', e => {
     const p = ptrs.get(e.pointerId);
     if (!p) {
+      if (draw) { canvas.style.cursor = 'crosshair'; drawHover(e); return; }
       const hd = !placeCb && editing ? grabHandle(e) : null;
-      canvas.style.cursor = placeCb ? 'crosshair' : hd === 'y' ? 'ns-resize' : hd === 'rot' ? 'grab' : editing && grabZone(e) ? 'move' : pick(e) ? 'pointer' : '';
+      canvas.style.cursor = placeCb ? 'crosshair' : hd === 'y' ? 'ns-resize' : hd === 'rot' ? 'grab' : editing && grabZone(e) ? 'move' : pick(e) || pickFence(e) ? 'pointer' : '';
       return;
     }
     const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY;
@@ -5499,8 +5538,13 @@ function initScene() {
       return;
     }
     if (had && e.type === 'pointerup' && moved < 7 && !ptrs.size) {
-      if (placeCb) placeCb(pickPoint(e));                   // mode penempatan: klik = titik baru zona
-      else { const g = editing ? grabZone(e) : null, id = g ? g.m.z.id : pick(e); if (id) openMarker(id); }   // mode atur: klik kotak zona juga memilih
+      if (draw) drawClick(e);                               // mode gambar pagar: klik = titik jalur
+      else if (placeCb) placeCb(pickPoint(e));              // mode penempatan: klik = titik baru zona
+      else {
+        const g = editing ? grabZone(e) : null, id = g ? g.m.z.id : pick(e);   // mode atur: klik kotak zona juga memilih
+        if (id) openMarker(id);
+        else { const fid = pickFence(e); if (fid && api.onFence) api.onFence(fid); }
+      }
     }
   };
   canvas.addEventListener('pointerup', endPtr); canvas.addEventListener('pointercancel', endPtr);
@@ -5576,6 +5620,115 @@ function initScene() {
   }
   requestAnimationFrame(frame);
 
+  /* ---------- Pagar pengaman: tiang hollow + lampu LED putus-putus mengikuti jalur titik ---------- */
+  const PS = PAGAR_SPEK;
+  const FM = { post: basic(0x4b4136), plate: basic(0x2b2621), led: basic(0xffb547), hit: new T.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }) };
+  const FG = { post: new T.BoxGeometry(PS.tiang, PS.tinggi, PS.tiang), plate: new T.BoxGeometry(0.24, 0.02, 0.24),
+    dash: new T.BoxGeometry(PS.dash, PS.led, PS.led), vdash: new T.BoxGeometry(PS.led, PS.dash * 0.75, PS.led) };
+  const FGset = new Set(Object.values(FG));
+  const fenceRoot = new T.Group(); scene.add(fenceRoot);
+  const fences = new Map();                                 // id pagar -> { g, hits, line }
+  const XAX = new T.Vector3(1, 0, 0), ONE = new T.Vector3(1, 1, 1), mtx = new T.Matrix4();
+  const dotMat0 = new T.PointsMaterial({ map: glowTex, color: C(0x3ddc97), size: 22, sizeAttenuation: false, transparent: true, depthTest: false, depthWrite: false });
+  const dotMat = new T.PointsMaterial({ map: glowTex, color: C(0xffd27a), size: 18, sizeAttenuation: false, transparent: true, depthTest: false, depthWrite: false });
+  function instanced(geo, mat, list) {                      // list: [{ p: Vector3, q: Quaternion }]
+    const m = new T.InstancedMesh(geo, mat, Math.max(1, list.length));
+    list.forEach((it, i) => m.setMatrixAt(i, mtx.compose(it.p, it.q, ONE)));
+    m.count = list.length; m.instanceMatrix.needsUpdate = true;
+    return m;
+  }
+  function fenceGroup(titik, tutup, id) {
+    const loop = tutup && titik.length > 2, pts = (loop ? titik.concat([titik[0]]) : titik).map(t => new T.Vector3(t[0], t[1], t[2]));
+    const g = new T.Group(), posts = [], plates = [], dashes = [], vdash = [], line = [], hits = [];
+    let first = true;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1], d = b.clone().sub(a), Lh = Math.hypot(d.x, d.z);
+      if (Lh < 0.05) continue;
+      const yawQ = new T.Quaternion().setFromAxisAngle(UP, Math.atan2(-d.z, d.x));     // sumbu X lokal searah ruas (mendatar)
+      const n = Math.max(1, Math.ceil(Lh / PS.jarakMaks - 1e-9)), lastLoop = loop && i === pts.length - 2;
+      for (let k = first ? 0 : 1; k <= n; k++) {
+        if (lastLoop && k === n) continue;                   // jalur tertutup: tiang di titik awal sudah ada
+        const p = a.clone().lerp(b, k / n);
+        posts.push({ p: p.clone().setY(p.y + PS.tinggi / 2), q: yawQ });
+        plates.push({ p: p.clone().setY(p.y + 0.01), q: yawQ });
+        PS.ledTiang.forEach(h => vdash.push({ p: p.clone().add(new T.Vector3(0, h, PS.tiang / 2 + PS.led / 2).applyQuaternion(yawQ)), q: yawQ }));
+      }
+      first = false;
+      const len = d.length(), slopeQ = new T.Quaternion().setFromUnitVectors(XAX, d.clone().normalize());
+      const step = PS.dash + PS.gap, m = Math.max(1, Math.floor((len - PS.tiang + PS.gap) / step)), off = (len - (m * step - PS.gap)) / 2;
+      PS.ledY.forEach(h => {
+        for (let j = 0; j < m; j++) { const p = a.clone().lerp(b, (off + j * step + PS.dash / 2) / len); p.y += h; dashes.push({ p, q: slopeQ }); }
+        line.push(a.x, a.y + h, a.z, b.x, b.y + h, b.z);
+      });
+      const hit = new T.Mesh(new T.BoxGeometry(len, PS.tinggi + 2, 3), FM.hit);  // area klik yang lebih lebar dari pagar
+      hit.position.copy(a).lerp(b, 0.5); hit.position.y += PS.tinggi / 2; hit.quaternion.copy(slopeQ); hit.userData.fence = id;
+      g.add(hit); hits.push(hit);
+    }
+    if (posts.length) g.add(instanced(FG.post, FM.post, posts), instanced(FG.plate, FM.plate, plates), instanced(FG.vdash, FM.led, vdash));
+    if (dashes.length) g.add(instanced(FG.dash, FM.led, dashes));
+    let lineObj = null;
+    if (line.length) {                                      // garis LED tipis: tetap terlihat walau kamera jauh
+      const lg = new T.BufferGeometry(); lg.setAttribute('position', new T.Float32BufferAttribute(line, 3));
+      lineObj = new T.LineSegments(lg, new T.LineDashedMaterial({ color: C(0xffb547), dashSize: PS.dash, gapSize: PS.gap }));
+      lineObj.computeLineDistances(); g.add(lineObj);
+    }
+    return { g, hits, line: lineObj };
+  }
+  function disposeFenceGroup(g) {
+    g.traverse(o => { if (o.geometry && !FGset.has(o.geometry)) o.geometry.dispose(); if ((o.isLineSegments || o.isPoints) && o.material !== dotMat && o.material !== dotMat0) o.material.dispose(); });
+  }
+  let fenceSel = null;
+  function markFence() { fences.forEach((r, id) => { if (r.line) r.line.material.color.copy(C(id === fenceSel ? 0xfff2c4 : 0xffb547)); }); }
+  function removeFence(id) { const r = fences.get(id); if (!r) return; fenceRoot.remove(r.g); disposeFenceGroup(r.g); fences.delete(id); }
+  function addFence(f) { removeFence(f.id); const r = fenceGroup(f.titik, f.tutup, f.id); fenceRoot.add(r.g); fences.set(f.id, r); markFence(); }
+  function pickFence(ev) {
+    if (!fenceRoot.visible || !fences.size) return null;
+    setNdc(ev); const list = []; fences.forEach(r => list.push(...r.hits));
+    const h = ray.intersectObjects(list, false);
+    return h.length ? h[0].object.userData.fence : null;
+  }
+  // Mode gambar: klik = titik baru, klik dua kali = selesai; pratinjau pagar mengikuti kursor
+  let draw = null;
+  const drawPlane = new T.Plane(), drawPt = new T.Vector3();
+  function drawRender() {
+    if (!draw) return;
+    if (draw.prev) { fenceRoot.remove(draw.prev); disposeFenceGroup(draw.prev); draw.prev = null; }
+    const pts = draw.cursor && draw.pts.length ? draw.pts.concat([draw.cursor]) : draw.pts;
+    const g = pts.length >= 2 ? fenceGroup(pts, draw.tutup && !draw.cursor, '_draw').g : new T.Group();
+    if (pts.length >= 2) {                                  // garis bantu jalur
+      const arr = []; for (let i = 0; i < pts.length - 1; i++) arr.push(pts[i][0], pts[i][1] + 0.06, pts[i][2], pts[i + 1][0], pts[i + 1][1] + 0.06, pts[i + 1][2]);
+      if (draw.tutup && !draw.cursor && pts.length > 2) arr.push(pts[pts.length - 1][0], pts[pts.length - 1][1] + 0.06, pts[pts.length - 1][2], pts[0][0], pts[0][1] + 0.06, pts[0][2]);
+      const lg = new T.BufferGeometry(); lg.setAttribute('position', new T.Float32BufferAttribute(arr, 3));
+      g.add(new T.LineSegments(lg, new T.LineBasicMaterial({ color: C(0xffffff), transparent: true, opacity: 0.55, depthTest: false })));
+    }
+    draw.pts.forEach((t, i) => {                            // titik yang sudah diklik (hijau = titik awal)
+      const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.Float32BufferAttribute([t[0], t[1] + 0.3, t[2]], 3));
+      const pt = new T.Points(pg, i === 0 ? dotMat0 : dotMat); pt.renderOrder = 60; g.add(pt);
+    });
+    fenceRoot.add(g); draw.prev = g;
+  }
+  function drawHover(ev) {
+    if (!draw || !draw.pts.length) return;
+    setNdc(ev); const last = draw.pts[draw.pts.length - 1];
+    drawPlane.set(UPV, -last[1]);                           // bidang datar setinggi titik terakhir (murah dihitung)
+    if (!ray.ray.intersectPlane(drawPlane, drawPt)) return;
+    draw.cursor = [drawPt.x, last[1], drawPt.z];
+    if (!draw.raf) draw.raf = requestAnimationFrame(() => { if (!draw) return; draw.raf = 0; drawRender(); draw.onChange(draw.pts, draw.cursor); });
+  }
+  function drawClick(ev) {
+    const pt = pickPoint(ev);
+    if (!pt) { toast('Titik tidak terbaca', 'Klik pada permukaan model atau tanah.', 'sedang'); return; }
+    draw.pts.push(pt); draw.cursor = null; drawRender(); draw.onChange(draw.pts, null);
+  }
+  canvas.addEventListener('dblclick', e => {
+    if (!draw) return;
+    e.preventDefault();
+    const p = draw.pts;                                     // klik ganda menambah titik kembar: buang yang berdempetan
+    while (p.length >= 2 && Math.hypot(p[p.length - 1][0] - p[p.length - 2][0], p[p.length - 1][2] - p[p.length - 2][2]) < 0.6) p.pop();
+    draw.cursor = null; drawRender(); draw.onChange(p, null);
+    if (draw.onFinish) draw.onFinish();
+  });
+
   /* ---------- API untuk bagian UI ---------- */
   const api = {
     focus(id) { const m = markers.find(m => m.z.id === id); if (m) flyTo(m.cam); },
@@ -5594,7 +5747,29 @@ function initScene() {
     addZone(z) { if (sceneReady) addMarker(z); },
     updateZone(z) { if (!sceneReady) return; removeMarker(z.id); addMarker(z); markers[markers.length - 1].show = 1; },
     removeZone(id) { removeMarker(id); },
-    rebuild() { if (!sceneReady) return; markers.slice().forEach(m => removeMarker(m.z.id)); allZones().forEach(addMarker); },
+    rebuild() { if (!sceneReady) return; markers.slice().forEach(m => removeMarker(m.z.id)); allZones().forEach(addMarker); api.rebuildFences(); },
+    // pagar pengaman
+    addFence(f) { if (sceneReady) addFence(f); },
+    removeFence,
+    rebuildFences() { if (!sceneReady) return; [...fences.keys()].forEach(removeFence); PAGAR.forEach(addFence); },
+    setFences(on) { fenceRoot.visible = !!on; },
+    setFenceSelected(id) { fenceSel = id || null; markFence(); },
+    focusFence(id) {
+      const r = fences.get(id); if (!r) return;
+      const bb = new T.Box3().setFromObject(r.g), c = bb.getCenter(new T.Vector3()), sz = bb.getSize(new T.Vector3());
+      flyTo({ theta: cur.theta, phi: 1.02, radius: clamp(Math.max(sz.x, sz.z) * 1.35, 30, 600), target: [c.x, c.y, c.z] });
+    },
+    drawStart(onChange, onFinish) { api.drawStop(); fenceRoot.visible = true; draw = { pts: [], tutup: false, cursor: null, prev: null, raf: 0, onChange, onFinish }; canvas.style.cursor = 'crosshair'; },
+    drawUndo() { if (!draw || !draw.pts.length) return; draw.pts.pop(); draw.cursor = null; drawRender(); draw.onChange(draw.pts, null); },
+    drawClosed(v) { if (draw) { draw.tutup = !!v; draw.cursor = null; drawRender(); } },
+    drawPoints: () => draw ? draw.pts.map(p => p.slice()) : [],
+    drawStop() {
+      if (!draw) return;
+      const d = draw; draw = null; if (d.raf) cancelAnimationFrame(d.raf);
+      if (d.prev) { fenceRoot.remove(d.prev); disposeFenceGroup(d.prev); }
+      canvas.style.cursor = '';
+    },
+    onFence: null,                                          // dipanggil saat pagar diklik
     setWork(on) { workOn = !!on; api.setFilter(state.filter); },
     camTheta: () => cur.theta,
     setPlacing(cb) { placeCb = cb || null; canvas.style.cursor = placeCb ? 'crosshair' : ''; },
@@ -5614,7 +5789,7 @@ function initScene() {
       $$('#layers button[data-layer]').forEach(b => { if (!layers[b.dataset.layer]) { b.disabled = true; b.setAttribute('aria-pressed', 'false'); } });
       if (failed.length === MODEL.parts.length) { showFallback(); return; }
       if (failed.length) toast('Sebagian model gagal dimuat', failed.map(p => p.label).join(', '), 'sedang');
-      buildMasts(); sceneReady = true; allZones().forEach(addMarker);
+      buildMasts(); sceneReady = true; allZones().forEach(addMarker); PAGAR.forEach(addFence);
       if (state.selected) api.focus(state.selected);
     })
     .catch(err => { console.warn('Model 3D gagal disiapkan:', err && err.message); loadEl.classList.add('done'); showFallback(); });
@@ -5624,7 +5799,8 @@ function initScene() {
 
 // Jika Three.js/WebGL gagal dimuat, UI tetap berfungsi tanpa model
 let scene3d = { focus() {}, reset() {}, zoom() {}, setOffset() {}, setFilter() {}, setSelected() {}, setLayer() {}, setEditing() {}, setPins() {}, setWork() {},
-  ready: () => false, addZone() {}, updateZone() {}, removeZone() {}, rebuild() {}, camTheta: () => 0.5, setPlacing() {} };
+  ready: () => false, addZone() {}, updateZone() {}, removeZone() {}, rebuild() {}, camTheta: () => 0.5, setPlacing() {},
+  addFence() {}, removeFence() {}, rebuildFences() {}, setFences() {}, setFenceSelected() {}, focusFence() {}, drawStart() {}, drawUndo() {}, drawClosed() {}, drawPoints: () => [], drawStop() {} };
 function showFallback() {
   $('#loading').classList.add('done');
   $$('#layers button').forEach(b => { b.disabled = true; });
@@ -5648,7 +5824,7 @@ function openPanel(mode) {
 function closePanel() {
   state.panel = null; state.selected = null;
   stageEl.classList.remove('panel-open'); panel.setAttribute('aria-hidden', 'true');
-  scene3d.setSelected(null); scene3d.setOffset();
+  scene3d.setSelected(null); scene3d.setFenceSelected(null); scene3d.setOffset();
   setNav('command');
 }
 
@@ -5892,6 +6068,7 @@ function openInfo(kind) {
       <dt>▲ Risiko tinggi / ◆ sedang / ● terkendali</dt><dd>${nL('tinggi')} / ${nL('sedang')} / ${nL('terkendali')}</dd>
       <dt>Izin kerja aktif</dt><dd>${izinAktif().length}</dd>
       <dt>Bahaya teridentifikasi / pengendalian risiko</dt><dd>${rz.reduce((s, z) => s + z.identifikasi.length, 0)} / ${rz.reduce((s, z) => s + z.kontrol.length, 0)}</dd>
+      <dt>Pagar pengaman</dt><dd>${PAGAR.length} jalur · ${fmt(PAGAR.reduce((s, f) => s + pagarUkur(f.titik, f.tutup).panjang, 0))} m</dd>
       <dt>Zona kerja / mandor-subkon / pekerja</dt><dd>${WORKZONES.length} / ${WORKZONES.reduce((s, w) => s + w.mandor.length, 0)} / ${WORKZONES.reduce((s, w) => s + nPekerja(w), 0)}</dd>
       <dt>Durasi proyek</dt><dd>${pi.pakai} dari ${pi.total} hari · sisa ${pi.sisa}</dd></dl>`;
     F.innerHTML = '<button class="btn" type="button" data-x>Tutup</button><button class="btn primary" type="button" id="infoExport">Ekspor ringkasan</button>';
@@ -5944,6 +6121,13 @@ MODEL.parts.forEach(p => {                                  // tombol lapisan mo
   b.addEventListener('click', () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(v)); scene3d.setWork(v); });
   $('#layers').appendChild(b);
 }
+{                                                           // sakelar pagar pengaman
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'fenceLayer'; b.textContent = 'Pagar'; b.setAttribute('aria-pressed', 'true');
+  b.setAttribute('aria-label', 'Tampilkan pagar pengaman');
+  b.addEventListener('click', () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(v)); scene3d.setFences(v); });
+  $('#layers').appendChild(b);
+}
 {                                                           // sakelar semua pin (tersimpan di browser ini)
   const b = document.createElement('button'); let on = true;
   try { on = localStorage.getItem('safebuild8d.pin') !== '0'; } catch (_) {}
@@ -5976,7 +6160,8 @@ $('#zoomIn').addEventListener('click', () => scene3d.zoom(0.82));
 $('#zoomOut').addEventListener('click', () => scene3d.zoom(1.22));
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || $('dialog[open]')) return;
-  if (state.placing) stopPlacing();
+  if (fenceDraw) stopFenceDraw();
+  else if (state.placing) stopPlacing();
   else if (pop.classList.contains('open')) toggleNotif(false);
   else if ($('#sidebar').classList.contains('open')) drawer(false);
   else if (state.panel) { closePanel(); setNav('command'); }
@@ -6095,6 +6280,100 @@ function startPlacing(z, isNew) { if (!isAdmin()) return;
     toast(isNew ? 'Zona ditambahkan' : 'Zona dipindahkan', `${z.nama} · elevasi ${fmt(z.pos[1])} m`, 'terkendali');
   });
 }
+/* ---------- Pagar pengaman: gambar jalur, lihat detail, ganti nama, hapus ---------- */
+var fenceDraw = null;                                       // { target: pagar yang jalurnya digambar ulang, atau null }
+const pagarById = id => PAGAR.find(f => f.id === id);
+function fenceBarUpdate(pts, cursor) {
+  const closed = $('#fenceClose').checked && pts.length > 2 && !cursor, all = cursor ? pts.concat([cursor]) : pts;
+  const u = all.length >= 2 ? pagarUkur(all, closed) : null;
+  $('#fenceMsg').innerHTML = !pts.length ? (fenceDraw && fenceDraw.target ? `Gambar ulang jalur <b>${esc(fenceDraw.target.nama)}</b>: klik titik awal pada model.` : 'Klik titik awal jalur pagar pada model.')
+    : `<b>${pts.length}</b> titik${u ? ` · <b>${fmt(u.panjang)} m</b> · <b>${u.tiang}</b> tiang` : ''} · ${pts.length < 2 ? 'klik titik berikutnya' : 'klik dua kali atau Selesai untuk mengakhiri'}`;
+  $('#fenceUndo').disabled = !pts.length; $('#fenceDone').disabled = pts.length < 2; $('#fenceClose').disabled = pts.length < 3;
+}
+function startFenceDraw(target) {
+  if (!isAdmin()) return;
+  if (!scene3d.ready()) { toast('Model 3D belum siap', 'Tunggu sampai model selesai dimuat.', 'sedang'); return; }
+  if (state.placing) stopPlacing();
+  if (state.panel) closePanel();
+  fenceDraw = { target: target || null };
+  $('#fenceClose').checked = !!(target && target.tutup);
+  $('#fenceBar').hidden = false;
+  scene3d.drawStart(fenceBarUpdate, finishFenceDraw); scene3d.drawClosed($('#fenceClose').checked);
+  fenceBarUpdate([], null);
+  const fl = $('#fenceLayer'); if (fl && fl.getAttribute('aria-pressed') !== 'true') fl.setAttribute('aria-pressed', 'true');
+}
+function stopFenceDraw() { fenceDraw = null; $('#fenceBar').hidden = true; scene3d.drawStop(); }
+function finishFenceDraw() {
+  if (!fenceDraw) return;
+  const pts = scene3d.drawPoints();
+  if (pts.length < 2) { toast('Titik belum cukup', 'Pagar membutuhkan minimal 2 titik.', 'sedang'); return; }
+  const tutup = $('#fenceClose').checked && pts.length > 2, titik = pts.map(p => p.map(r1)), target = fenceDraw.target;
+  stopFenceDraw();
+  let f;
+  if (target && PAGAR.includes(target)) { target.titik = titik; target.tutup = tutup; f = target; }
+  else { f = normalizePagar({ id: 'pg' + Date.now().toString(36), nama: 'Pagar ' + (PAGAR.length + 1), titik, tutup }); PAGAR.push(f); }
+  scene3d.addFence(f); saveLayout(); selectFence(f.id, true);
+  const u = pagarUkur(f.titik, f.tutup);
+  toast(target ? 'Jalur pagar diperbarui' : 'Pagar ditambahkan', `${f.nama} · ${fmt(u.panjang)} m · ${u.tiang} tiang`, 'terkendali');
+}
+function selectFence(id, noFly) {
+  const f = pagarById(id); if (!f) return;
+  state.selected = id;
+  renderFence(f); openPanel('pagar');
+  scene3d.setSelected(null); scene3d.setFenceSelected(id); if (!noFly) scene3d.focusFence(id);
+  const t = $('#panelTitle'); if (t) t.focus({ preventScroll: true });
+}
+function renderFence(f) {
+  const u = pagarUkur(f.titik, f.tutup), S = PAGAR_SPEK;
+  panel.className = 'panel glass'; panel.style.setProperty('--lv', '#ffb547');
+  $('#panelHead').innerHTML = `
+    <div><div class="code">PAGAR PENGAMAN</div>
+      <h2 id="panelTitle" tabindex="-1">${esc(f.nama)}</h2><span class="badge"><span class="g" aria-hidden="true">┃</span>Pagar LED</span></div>
+    <button class="x" type="button" id="panelClose" aria-label="Tutup detail pagar"><svg class="ic"><use href="#i-x"/></svg></button>`;
+  const jarak = Math.abs(u.jarakMaks - u.jarakMin) < 0.05 ? `${fmt(u.jarakMaks)} m` : `${fmt(u.jarakMin)}–${fmt(u.jarakMaks)} m`;
+  $('#panelBody').innerHTML = `
+    <dl class="facts">
+      <div><dt>Panjang total</dt><dd>${fmt(u.panjang)} m<small>${u.ruas} ruas${f.tutup ? ' · jalur tertutup' : ''}</small></dd></div>
+      <div><dt>Jumlah tiang</dt><dd>${u.tiang} tiang</dd></div>
+      <div><dt>Jarak antar tiang</dt><dd>${jarak}</dd></div>
+    </dl>
+    <section aria-labelledby="fgH">
+      <div class="sec-h"><h3 id="fgH">Detail pagar</h3></div>
+      <ul class="rlist ctl">
+        <li>Tiang pagar besi hollow ± 100 × 100 mm</li>
+        <li>Lampu LED neon / flexible LED (garis putus-putus)</li>
+        <li>Tinggi pagar ± ${fmt(S.tinggi)} m</li>
+        <li>Jarak antar tiang ± 2,0–${fmt(S.jarakMaks)} m</li>
+      </ul>
+    </section>`;
+  $('#panelActions').innerHTML = `
+    <div class="field"><label for="fgNama">Nama pagar</label><input type="text" id="fgNama" maxlength="60" autocomplete="off" value="${esc(f.nama)}"></div>
+    <div class="pair"><button class="btn" type="button" id="fgRedraw">Gambar ulang jalur</button><button class="btn danger" type="button" id="fgDel">Hapus pagar</button></div>`;
+  $('#panelActions').hidden = false;
+  $('#panelClose').addEventListener('click', closePanel);
+  $('#fgNama').addEventListener('change', e => {
+    const v = e.target.value.trim().slice(0, 60); if (!v || v === f.nama) { e.target.value = f.nama; return; }
+    f.nama = v; saveLayout(); $('#panelTitle').textContent = v; toast('Nama pagar diubah', v, 'info');
+  });
+  $('#fgRedraw').addEventListener('click', () => startFenceDraw(f));
+  $('#fgDel').addEventListener('click', e => {
+    const b = e.currentTarget;
+    if (!b.dataset.arm) { b.dataset.arm = '1'; b.textContent = 'Klik lagi untuk menghapus'; setTimeout(() => { if (b.isConnected) { delete b.dataset.arm; b.textContent = 'Hapus pagar'; } }, 3500); return; }
+    const k = PAGAR.indexOf(f); if (k < 0) return;
+    PAGAR.splice(k, 1); scene3d.removeFence(f.id); saveLayout(); closePanel();
+    toast('Pagar dihapus', f.nama, 'info');
+  });
+}
+$('#edFence').addEventListener('click', () => startFenceDraw(null));
+$('#fenceUndo').addEventListener('click', () => scene3d.drawUndo());
+$('#fenceClose').addEventListener('change', e => { scene3d.drawClosed(e.target.checked); fenceBarUpdate(scene3d.drawPoints(), null); });
+$('#fenceDone').addEventListener('click', finishFenceDraw);
+$('#fenceCancel').addEventListener('click', stopFenceDraw);
+document.addEventListener('keydown', e => {
+  if (!fenceDraw || $('dialog[open]') || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  if (e.key === 'Backspace' || (e.key === 'z' && (e.ctrlKey || e.metaKey))) { e.preventDefault(); scene3d.drawUndo(); }
+  else if (e.key === 'Enter') { e.preventDefault(); finishFenceDraw(); }
+});
 function stopPlacing() { state.placing = null; $('#placing').hidden = true; scene3d.setPlacing(null); }
 $('#placeCancel').addEventListener('click', stopPlacing);
 
@@ -6137,6 +6416,7 @@ function setEdit(on) {
   $('#editBtn').setAttribute('aria-pressed', String(on)); $('#editbar').hidden = !on;
   scene3d.setEditing(on);
   if (!on && state.placing) stopPlacing();
+  if (!on && fenceDraw) stopFenceDraw();
   if (state.panel === 'detail' && zoneById(state.selected)) renderDetail(zoneById(state.selected));
   else if (state.panel === 'list') renderList();
 }
@@ -6369,6 +6649,7 @@ function setAdmin(on) {
     if (SYNC) { if (on) sessionStorage.setItem(PASS_KEY, adminPass); else sessionStorage.removeItem(PASS_KEY); }
     else if (on) sessionStorage.setItem(ADMIN_KEY, ADMIN_HASH); else sessionStorage.removeItem(ADMIN_KEY);
   } catch (_) {}
+  if (!on && fenceDraw) stopFenceDraw();
   if (!on && state.edit) setEdit(false);
   applyAdmin();
   if (state.placing) stopPlacing();
@@ -6489,7 +6770,8 @@ async function pullLayout() {
   applyLayout(L); store.set(layoutData()); scene3d.rebuild(); refreshZoneUI(); renderProj();
   if (panel === 'detail' && zoneById(sel)) renderDetail(zoneById(sel));
   else if (panel === 'work' && workById(sel)) renderWork(workById(sel));
-  else if (panel === 'detail' || panel === 'work') { closePanel(); setNav('command'); }
+  else if (panel === 'pagar' && pagarById(sel)) renderFence(pagarById(sel));
+  else if (panel === 'detail' || panel === 'work' || panel === 'pagar') { closePanel(); setNav('command'); }
   syncStatus('Tersinkron · ' + jamSekarang());
 }
 if (SYNC) {
@@ -6609,6 +6891,7 @@ try {
   if (!window.THREE || !window.THREE.GLTFLoader) throw new Error('Three.js tidak termuat');
   scene3d = initScene();
   scene3d.onMoved = onZoneMoved;
+  scene3d.onFence = id => selectFence(id);
   scene3d.setPins($('#pinToggle').getAttribute('aria-pressed') === 'true');
   scene3d.setWork($('#workToggle').getAttribute('aria-pressed') === 'true');
 } catch (err) {
