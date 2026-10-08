@@ -205,7 +205,7 @@ svg.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-wid
 .tools button:disabled{opacity:.4;cursor:not-allowed}
 [hidden]{display:none !important}
 /* Mode admin: tanpa masuk sebagai admin, halaman hanya bisa dilihat */
-body:not(.is-admin) :is(#editBtn,#editbar,#projBtn,#permitAdd,.pdel,#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox){display:none !important}
+body:not(.is-admin) :is(#editBtn,#editbar,#projBtn,#perfBtn,#permitAdd,.pdel,#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox){display:none !important}
 body:not(.is-admin) :is(#permits .pmain,#ctrlList .ctrl){cursor:default}
 .sync.bad i{background:#ff6166;box-shadow:none;animation:none}
 .iconbtn.on{color:var(--blue);border-color:rgba(86,168,255,.6);background:rgba(86,168,255,.14)}
@@ -376,6 +376,22 @@ input[type=date]{color-scheme:dark}
 .permits .chip{grid-row:1 / span 2;grid-column:3}
 .flash{animation:flash 1.4s var(--ease)}
 @keyframes flash{0%,40%{background:rgba(86,168,255,.14)}100%{background:transparent}}
+/* Safety performance */
+.sp{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp .tile{min-width:0;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:rgba(140,175,215,.04)}
+.sp .tile small{display:block;font-size:11px;color:var(--muted)}
+.sp .tile b{display:block;margin-top:1px;font-size:19px;line-height:1.2;font-weight:650;font-variant-numeric:tabular-nums}
+.sp .tile b i{font-style:normal;font-size:12px;font-weight:500;color:var(--muted)}
+.sp .tile em{display:block;font-style:normal;font-size:11.5px;color:var(--dim);overflow-wrap:anywhere}
+.sp .wide{grid-column:1 / -1}
+.sp .acc{grid-column:1 / -1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;overflow:hidden}
+.sp .acc>div{padding:8px 11px;min-width:0}
+.sp .acc>div+div{border-left:1px solid var(--line)}
+.sp .acc .tot{background:rgba(140,175,215,.06)}
+.sp .acc .k1 b{color:var(--red)} .sp .acc .k2 b{color:var(--amber)} .sp .acc .k3 b{color:#ffd76a}
+.sp .acc .tot.nol b{color:var(--green)}
+.sp .acc .k.nol b{color:var(--text)}
+@media (max-width:520px){.sp .acc{grid-template-columns:1fr 1fr}.sp .acc>div:nth-child(3){border-left:0}.sp .acc>div:nth-child(n+3){border-top:1px solid var(--line)}}
 .timeline{max-height:176px;overflow-y:auto;padding-right:4px;position:relative}
 .timeline li{display:grid;grid-template-columns:44px 14px 1fr auto;gap:0 8px;align-items:start;padding:5px 0;position:relative}
 .timeline time{font-family:var(--mono);font-size:12px;color:var(--muted);padding-top:1px}
@@ -658,9 +674,19 @@ fieldset{border:0;margin:0;padding:0}
         <h2 id="h-permit">Izin kerja <span><span id="permitN"></span><button type="button" class="mini" id="permitAdd">+ Tambah izin</button></span></h2>
         <ul class="permits" id="permits"></ul>
       </section>
-      <section aria-labelledby="h-time">
-        <h2 id="h-time">Aktivitas keselamatan hari ini <span id="todayShort"></span></h2>
-        <ol class="timeline" id="timeline"></ol>
+      <section aria-labelledby="h-perf">
+        <h2 id="h-perf">Safety performance <span><span id="perfAsOf"></span><button type="button" class="mini" id="perfBtn">Ubah</button></span></h2>
+        <div class="sp">
+          <div class="tile"><small>Waktu pelaksanaan</small><b><span id="spHari">0</span> <i>hari</i></b><em id="spMulai"></em></div>
+          <div class="tile"><small>Tanggal</small><b id="spTgl">–</b><em id="spHariIni"></em></div>
+          <div class="tile wide"><small>Jumlah jam kerja</small><b><span id="spJam">0</span> <i>jam</i></b><em id="spRumus"></em></div>
+          <div class="tile acc" role="group" aria-label="Kecelakaan kerja">
+            <div class="tot" id="spTotBox"><small>Jumlah kecelakaan</small><b id="spTot">0</b></div>
+            <div class="k k1" id="spMatiBox"><small>Meninggal</small><b id="spMati">0</b></div>
+            <div class="k k2" id="spBeratBox"><small>Luka berat</small><b id="spBerat">0</b></div>
+            <div class="k k3" id="spRinganBox"><small>Luka ringan</small><b id="spRingan">0</b></div>
+          </div>
+        </div>
       </section>
     </div>
   </div>
@@ -795,6 +821,28 @@ fieldset{border:0;margin:0;padding:0}
         <div class="field"><label for="fpDurasi">Total waktu pelaksanaan (hari kalender)</label><input type="number" id="fpDurasi" required min="1" max="10000" step="1" inputmode="numeric"></div>
       </div>
       <p class="prev" id="fpPrev" aria-live="polite"></p>
+    </div>
+    <div class="dlg-foot">
+      <button class="btn" type="button" data-close>Batal</button>
+      <button class="btn primary" type="submit">Simpan</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgPerf" aria-labelledby="dlgPerfT">
+  <form id="formPerf">
+    <div class="dlg-head">
+      <div><h2 id="dlgPerfT">Safety performance</h2><p>Jam kerja = pekerja terdata × jam kerja per hari × hari pelaksanaan. Jumlah kecelakaan = meninggal + luka berat + luka ringan.</p></div>
+      <button class="x" type="button" data-close aria-label="Tutup"><svg class="ic"><use href="#i-x"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <div class="field"><label for="fsJam">Jam kerja per hari</label><input type="number" id="fsJam" required min="0.5" max="24" step="0.5" inputmode="decimal"></div>
+      <div class="row2">
+        <div class="field"><label for="fsMati">Meninggal</label><input type="number" id="fsMati" required min="0" max="9999" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="fsBerat">Luka berat</label><input type="number" id="fsBerat" required min="0" max="9999" step="1" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label for="fsRingan">Luka ringan</label><input type="number" id="fsRingan" required min="0" max="9999" step="1" inputmode="numeric"></div>
+      <p class="prev" id="fsPrev" aria-live="polite"></p>
     </div>
     <div class="dlg-foot">
       <button class="btn" type="button" data-close>Batal</button>
@@ -4780,6 +4828,8 @@ const WARNA_KERJA = ['#4f9dff', '#c77dff', '#22d3c5', '#ff8fb1', '#f5d04e', '#ff
 
 // Durasi proyek: hari pertama mulai (YYYY-MM-DD) dan total waktu pelaksanaan (hari kalender). Bisa diubah lewat tombol pensil di ringkasan.
 const PROYEK = { mulai: '2026-04-01', durasi: 300 };
+// Safety performance: jam kerja per hari dan jumlah korban kecelakaan (bisa diubah admin lewat tombol "Ubah")
+const KINERJA = { jamPerHari: 8, meninggal: 0, lukaBerat: 0, lukaRingan: 0 };
 const DONUT = [
   { key: 'tinggi', css: 'var(--red)' },
   { key: 'sedang', css: 'var(--amber)' },
@@ -4861,7 +4911,7 @@ try {
 } catch (_) {}
 function isAdmin() { return adminOn; }
 // Penjaga: klik dan kirim formulir pengubah data diabaikan bila bukan admin
-const ADMIN_ONLY = '#editBtn,#editbar,#projBtn,#permitAdd,#permits [data-del],#permits [data-permit],#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox,#ctrlList';
+const ADMIN_ONLY = '#editBtn,#editbar,#projBtn,#perfBtn,#permitAdd,#permits [data-del],#permits [data-permit],#panelActions,#infoHazard,#listAdd,#wkAdd,.editbox,#ctrlList';
 document.addEventListener('click', e => {
   if (!isAdmin() && e.target.closest && e.target.closest(ADMIN_ONLY)) { e.preventDefault(); e.stopImmediatePropagation(); }
 }, true);
@@ -4933,19 +4983,23 @@ function normalizeWork(w) {
 const applyWork = list => { WORKZONES.splice(0, WORKZONES.length, ...list.map(w => normalizeWork(JSON.parse(JSON.stringify(w))))); };
 // Format simpan: { versi, zona: [zona risiko], kerja: [zona kerja] }; file lama (hanya array zona risiko) tetap terbaca
 const validProyek = p => !!p && /^\d{4}-\d{2}-\d{2}$/.test(p.mulai || '') && Number.isInteger(p.durasi) && p.durasi >= 1 && p.durasi <= 10000;
+const cacah = v => Number.isInteger(v) && v >= 0 && v <= 9999;
+const validKinerja = k => !!k && Number.isFinite(k.jamPerHari) && k.jamPerHari > 0 && k.jamPerHari <= 24 && cacah(k.meninggal) && cacah(k.lukaBerat) && cacah(k.lukaRingan);
 function parseLayout(d) {
   const zona = d && (Array.isArray(d) ? d : d.zona), kerja = d && !Array.isArray(d) ? d.kerja : null;
   if (!validZones(zona) || (kerja != null && !validWork(kerja))) return null;
   const pr = d && !Array.isArray(d) ? d.proyek : null;
   const iz = d && !Array.isArray(d) ? d.izin : null;
-  return { zona, kerja: kerja || null, proyek: validProyek(pr) ? pr : null, izin: validPermits(iz) ? iz : null };
+  const kn = d && !Array.isArray(d) ? d.kinerja : null;
+  return { zona, kerja: kerja || null, proyek: validProyek(pr) ? pr : null, izin: validPermits(iz) ? iz : null, kinerja: validKinerja(kn) ? kn : null };
 }
 function applyLayout(L) {
   applyZones(L.zona); if (L.kerja) applyWork(L.kerja);
   applyPermits(L.izin || permitsFromZones(ZONES));          // file lama: izin diturunkan dari data zona
   if (L.proyek) Object.assign(PROYEK, { mulai: L.proyek.mulai, durasi: L.proyek.durasi });
+  if (L.kinerja) Object.assign(KINERJA, { jamPerHari: L.kinerja.jamPerHari, meninggal: L.kinerja.meninggal, lukaBerat: L.kinerja.lukaBerat, lukaRingan: L.kinerja.lukaRingan });
 }
-const layoutData = () => ({ versi: 3, zona: ZONES, kerja: WORKZONES, izin: PERMITS, proyek: PROYEK });
+const layoutData = () => ({ versi: 3, zona: ZONES, kerja: WORKZONES, izin: PERMITS, proyek: PROYEK, kinerja: KINERJA });
 const saveLayout = () => { const ok = store.set(layoutData()); queueSync(); return ok; };
 applyWork(WORKZONES); applyPermits(DEFAULT_PERMITS);
 { const saved = parseLayout(store.get()); if (saved) applyLayout(saved); }
@@ -4972,7 +5026,7 @@ function timelineItem(a, baru) {
   return li;
 }
 function addTimeline(a) {
-  const ol = $('#timeline');
+  const ol = $('#timeline'); if (!ol) return;
   const li = timelineItem(a, true);
   ol.appendChild(li);
   ol.scrollTop = ol.scrollHeight;
@@ -5723,13 +5777,32 @@ function renderProj() {
     : i.lewat ? `<em class="u">● ${i.pakai} terpakai</em><em class="r">▲ lewat ${i.lewat} hari</em>`
     : `<em class="u">● ${i.pakai} terpakai</em><em class="r">◆ ${i.sisa} sisa</em>`;
 }
+const totalPekerja = () => WORKZONES.reduce((s, w) => s + w.mandor.reduce((a, m) => a + m.pekerja.length, 0), 0);
+function hitungKinerja(k = KINERJA) {
+  const i = projInfo(), hari = i.belum ? 0 : i.pakai, pekerja = totalPekerja();
+  return { hari, pekerja, jam: pekerja * k.jamPerHari * hari, kecelakaan: k.meninggal + k.lukaBerat + k.lukaRingan, mulai: i.start };
+}
+function renderPerf() {
+  const h = hitungKinerja(), now = new Date(), f = n => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 1 });
+  $('#spHari').textContent = f(h.hari);
+  $('#spMulai').textContent = 'sejak ' + tgl(h.mulai);
+  $('#spTgl').textContent = tgl(now);
+  $('#spHariIni').textContent = tgl(now, { weekday: 'long' });
+  $('#perfAsOf').textContent = tgl(now, { day: 'numeric', month: 'short' });
+  $('#spJam').textContent = f(h.jam);
+  $('#spRumus').textContent = `${f(h.pekerja)} pekerja × ${f(KINERJA.jamPerHari)} jam/hari × ${f(h.hari)} hari`;
+  $('#spTot').textContent = f(h.kecelakaan);
+  $('#spTotBox').classList.toggle('nol', h.kecelakaan === 0);
+  [['spMatiBox', KINERJA.meninggal], ['spBeratBox', KINERJA.lukaBerat], ['spRinganBox', KINERJA.lukaRingan]].forEach(([id, n]) => $('#' + id).classList.toggle('nol', n === 0));   // angka nol tidak diberi warna peringatan
+  $('#spMati').textContent = f(KINERJA.meninggal); $('#spBerat').textContent = f(KINERJA.lukaBerat); $('#spRingan').textContent = f(KINERJA.lukaRingan);
+}
 function renderStats() {                                    // ringkasan selalu dihitung dari data zona yang ada
   const rz = riskZones(), izin = izinAktif().length;
   $('#stZona').textContent = rz.length; $('#stTinggi').textContent = rz.filter(z => z.level === 'tinggi').length;
   $('#stKerja').textContent = WORKZONES.length; $('#stIzin').textContent = izin;
   $('#navZona').textContent = rz.length; $('#navIzin').textContent = izin; $('#navWork').textContent = WORKZONES.length;
   $('#tmCrew').textContent = WORKZONES.reduce((s, w) => s + w.mandor.reduce((a, m) => a + m.pekerja.length, 0), 0);
-  renderDonut(); renderProj();
+  renderDonut(); renderProj(); renderPerf();
 }
 
 function buildPermits() {
@@ -6252,12 +6325,30 @@ function projPreview() {
   $('#fpPrev').innerHTML = `Selesai <b>${esc(tgl(i.end))}</b> · ` + (i.belum ? `mulai ${i.belum} hari lagi` : `terpakai <b>${i.pakai}</b> hari, sisa <b>${i.sisa}</b> hari${i.lewat ? `, lewat ${i.lewat} hari` : ''}`);
   return p;
 }
+function perfPreview() {
+  const k = { jamPerHari: parseFloat($('#fsJam').value), meninggal: parseInt($('#fsMati').value, 10), lukaBerat: parseInt($('#fsBerat').value, 10), lukaRingan: parseInt($('#fsRingan').value, 10) };
+  if (!validKinerja(k)) { $('#fsPrev').textContent = 'Isi jam kerja per hari (0,5–24) dan jumlah korban (bilangan bulat 0 atau lebih).'; return null; }
+  const h = hitungKinerja(k), f = n => Number(n).toLocaleString('id-ID', { maximumFractionDigits: 1 });
+  $('#fsPrev').innerHTML = `Jam kerja <b>${f(h.jam)}</b> jam (${f(h.pekerja)} pekerja × ${f(k.jamPerHari)} jam × ${f(h.hari)} hari) · jumlah kecelakaan <b>${f(h.kecelakaan)}</b>`;
+  return k;
+}
+$('#perfBtn').addEventListener('click', () => {
+  $('#fsJam').value = KINERJA.jamPerHari; $('#fsMati').value = KINERJA.meninggal; $('#fsBerat').value = KINERJA.lukaBerat; $('#fsRingan').value = KINERJA.lukaRingan;
+  perfPreview(); showDialog($('#dlgPerf'));
+});
+['fsJam', 'fsMati', 'fsBerat', 'fsRingan'].forEach(id => $('#' + id).addEventListener('input', perfPreview));
+$('#formPerf').addEventListener('submit', e => {
+  e.preventDefault();
+  const k = perfPreview(); if (!k) return;
+  Object.assign(KINERJA, k); saveLayout(); renderPerf(); hideDialog($('#dlgPerf'));
+  const h = hitungKinerja(); toast('Safety performance disimpan', `${h.jam.toLocaleString('id-ID')} jam kerja · ${h.kecelakaan} kecelakaan`, 'info');
+});
 $('#projBtn').addEventListener('click', () => { $('#fpMulai').value = PROYEK.mulai; $('#fpDurasi').value = PROYEK.durasi; projPreview(); showDialog($('#dlgProj')); });
 ['fpMulai', 'fpDurasi'].forEach(id => $('#' + id).addEventListener('input', projPreview));
 $('#formProj').addEventListener('submit', e => {
   e.preventDefault();
   const p = projPreview(); if (!p) return;
-  Object.assign(PROYEK, p); saveLayout(); renderProj(); hideDialog($('#dlgProj'));
+  Object.assign(PROYEK, p); saveLayout(); renderProj(); renderPerf(); hideDialog($('#dlgProj'));
   const i = projInfo(); toast('Durasi proyek disimpan', `${i.pakai} hari terpakai · ${i.sisa} hari sisa · selesai ${tgl(i.end)}`, 'info');
 });
 
@@ -6512,8 +6603,7 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 
 buildPermits(); renderStats();
 $('#todayDate').textContent = tgl(new Date(), { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-$('#todayShort').textContent = tgl(new Date(), { day: 'numeric', month: 'short' });
-TIMELINE.forEach(a => $('#timeline').appendChild(timelineItem(a, false)));
+setInterval(() => { renderProj(); renderPerf(); }, 10 * 60000);   // hari pelaksanaan & tanggal ikut berganti saat lewat tengah malam
 
 try {
   if (!window.THREE || !window.THREE.GLTFLoader) throw new Error('Three.js tidak termuat');
