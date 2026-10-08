@@ -638,7 +638,8 @@ fieldset{border:0;margin:0;padding:0}
         </div>
         <div class="editbar glass" id="editbar" role="toolbar" aria-label="Atur tata letak zona" hidden>
           <b>Atur zona</b>
-          <button type="button" id="edAdd"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona</button>
+          <button type="button" id="edAdd"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona risiko</button>
+        <button type="button" id="edAddWork"><svg class="ic"><use href="#i-plus"/></svg>Tambah zona kerja</button>
         <button type="button" id="edFence"><svg class="ic"><use href="#i-plus"/></svg>Gambar pagar</button>
           <button type="button" id="edExport">Ekspor</button>
           <button type="button" id="edImport">Impor</button>
@@ -6541,6 +6542,7 @@ function onZoneMoved(z) {                                   // zona selesai dise
 }
 $('#edDone').addEventListener('click', () => setEdit(false));
 $('#edAdd').addEventListener('click', () => openZoneForm(null));
+$('#edAddWork').addEventListener('click', () => openWorkForm(null));
 $('#edExport').addEventListener('click', () => {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify({ versi: 3, zona: ZONES, kerja: WORKZONES, izin: PERMITS, proyek: PROYEK }, null, 2)], { type: 'application/json' }));
